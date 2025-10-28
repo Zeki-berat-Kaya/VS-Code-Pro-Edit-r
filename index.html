@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>VS Code Pro Editör</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdn.materialdesignicons.com/6.5.95/css/materialdesignicons.min.css"> 
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdn.materialdesignicons.com/6.5.95/css/materialdesignicons.min.css">
 </head>
 <body data-theme="dark" data-terminal-theme="dark">
 
@@ -19,7 +19,6 @@
             <button id="new-file-button-activity" class="settings-button" title="Yeni Dosya (Ctrl+N)">
                 <span class="mdi mdi-file-plus-outline"></span>
             </button>
-            
             <button id="run-button" class="run-button" title="Kodu Çalıştır (F5)">
                 <span class="mdi mdi-play"></span> Çalıştır
             </button>
@@ -31,16 +30,16 @@
             </button>
 
             <button id="maximize-button" class="settings-button" title="Tam Ekran Yap (F11)">
-                <span class="mdi mdi-fullscreen"></span> 
+                <span class="mdi mdi-fullscreen"></span>
             </button>
             <button id="settings-button" class="settings-button" title="Ayarlar (Ctrl+,)">
-                <span class="mdi mdi-cog-outline"></span> 
+                <span class="mdi mdi-cog-outline"></span>
             </button>
         </div>
     </div>
 
     <div class="workspace">
-        
+
         <div class="activity-bar">
             <div class="activity-item active" data-target="explorer" title="Gezgin (Dosyalar)">
                 <span class="mdi mdi-file-tree"></span>
@@ -68,14 +67,13 @@
                     <button title="Yenile"><span class="mdi mdi-refresh"></span></button>
                 </div>
             </div>
-            
+
             <div id="explorer-panel" class="sidebar-panel">
                 <div class="file-list-container">
-                    <div id="file-list" class="file-list">
-                        </div>
+                    <div id="file-list" class="file-list"></div>
                 </div>
             </div>
-            
+
             <div id="search-panel" class="sidebar-panel">
                 <div class="search-box">
                     <input type="text" placeholder="Arama yap..." class="search-input">
@@ -83,19 +81,26 @@
                 </div>
                 <p style="margin: 10px; color: var(--inactive-text);">Arama simülasyonu.</p>
             </div>
-            
+
             <div id="source-control-panel" class="sidebar-panel">
                 <p style="margin: 10px; color: var(--inactive-text);">Sürüm kontrolü simülasyonu.</p>
-                <button class="run-button" style="width: 90%; margin: 5px;" id="cloudSaveButton">Cloud'a Kaydet</button>
             </div>
             
-            <div id="extensions-panel" class="sidebar-panel extensions-list">
-                <h3>Önerilen Eklentiler</h3>
-                <ul>
-                    <li>Prettier <button class="install-button" data-extension="prettier">Yükle</button></li>
-                    <li>Live Server <button class="install-button" data-extension="live-server">Yükle</button></li>
-                    <li>Python Linter <button class="install-button" data-extension="python-linter">Yükle</button></li>
-                </ul>
+            <div id="extensions-panel" class="sidebar-panel">
+                <div class="extension-list">
+                    <div class="extension-item">
+                        <span>Prettier (Code Formatter)</span>
+                        <button class="install-button" data-extension="prettier">Yükle</button>
+                    </div>
+                    <div class="extension-item">
+                        <span>Live Server (Preview)</span>
+                        <button class="install-button" data-extension="live-server">Yükle</button>
+                    </div>
+                    <div class="extension-item">
+                        <span>Python IntelliSense</span>
+                        <button class="install-button" data-extension="python-intellisense">Yükle</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -104,16 +109,16 @@
             <div id="file-tabs-container" class="file-tabs-container">
                 </div>
 
-            <div id="editor" class="editor-container"></div>
-            
+            <div id="editor-container" class="editor-container">
+                </div>
+
             <div class="terminal-panel">
                 <div class="panel-tabs">
-                    <div class="panel-tab active" data-tab="terminal">TERMİNAL</div>
-                    <div class="panel-tab" data-tab="console">KONSOL</div>
-                    <div class="panel-tab" data-tab="output">ÇIKTI</div>
+                    <div class="panel-tab active" data-tab="terminal">Terminal</div>
+                    <div class="panel-tab" data-tab="console">Konsol</div>
+                    <div class="panel-tab" data-tab="output">Çıktı</div>
                     <div class="panel-controls">
                         <button id="clear-terminal" title="Temizle"><span class="mdi mdi-trash-can-outline"></span></button>
-                        <button title="Kapat"><span class="mdi mdi-chevron-down"></span></button>
                     </div>
                 </div>
                 <div class="terminal-content-container">
@@ -124,26 +129,27 @@
             </div>
         </div>
     </div>
-
+    
     <div class="status-bar">
-        <div class="status-item">
-            <span class="mdi mdi-source-branch"></span> main*
+        <div class="status-group left-group">
+            <span class="status-item"><span class="mdi mdi-source-branch"></span> main</span>
+            <span class="status-item"><span class="mdi mdi-sync"></span> 0</span>
+            <span class="status-item"><span class="mdi mdi-alert-circle-outline"></span> 0</span>
+            <span class="status-item"><span class="mdi mdi-close-circle-outline"></span> 0</span>
         </div>
-        <div class="status-item" id="status-line-col">
-            Satır 1, Sütun 1
-        </div>
-        <div class="status-item">
-            <button id="import-project-button" title="Projeyi İçe Aktar"><span class="mdi mdi-upload"></span> İçe Aktar</button>
-            <input type="file" id="import-project-input" style="display: none;" accept=".json">
-            <button id="export-project-button" title="Projeyi Dışa Aktar"><span class="mdi mdi-download"></span> Dışa Aktar</button>
+        <div class="status-group right-group">
+            <span class="status-item" id="status-line-col">Satır 1, Sütun 1</span>
+            <span class="status-item"><span class="mdi mdi-file-code-outline"></span> HTML</span>
+            <span class="status-item"><span class="mdi mdi-xml"></span> UTF-8</span>
+            <span class="status-item" id="terminal-status-toggle"><span class="mdi mdi-chevron-up"></span> Terminal</span>
         </div>
     </div>
+
 
     <div id="settings-modal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <h2>Editör Ayarları</h2>
-            
             <div class="setting-group">
                 <label for="theme-select">Tema:</label>
                 <select id="theme-select">
@@ -152,7 +158,6 @@
                     <option value="hc-black">High Contrast</option>
                 </select>
             </div>
-            
             <div class="setting-group">
                 <label for="terminal-theme-select">Terminal Teması:</label>
                 <select id="terminal-theme-select">
@@ -160,51 +165,68 @@
                     <option value="light">Light</option>
                 </select>
             </div>
-
             <div class="setting-group">
                 <label for="font-family-select">Yazı Tipi (Font Ailesi):</label>
                 <select id="font-family-select">
-                    <option value="'Fira Code', monospace">Fira Code (Popüler)</option>
-                    <option value="Consolas, monospace">Consolas (Windows)</option>
-                    <option value="Menlo, monospace">Menlo (macOS)</option>
-                    <option value="monospace" selected>Varsayılan Monospace</option>
+                    <option value="monospace">Monospace (Varsayılan)</option>
+                    <option value="Consolas">Consolas</option>
+                    <option value="Fira Code">Fira Code (Simülasyon)</option>
                 </select>
             </div>
-
             <div class="setting-group">
-                <label for="font-size-input">Yazı Büyüklüğü (px):</label>
-                <input type="number" id="font-size-input" value="14" min="8" max="48">
+                <label for="font-size-input">Yazı Tipi Boyutu (px):</label>
+                <input type="number" id="font-size-input" min="8" max="30" value="14">
             </div>
-            
             <div class="setting-group">
-                <label for="autosave-checkbox">Otomatik Kaydetme:</label>
-                <input type="checkbox" id="autosave-checkbox" checked>
+                <input type="checkbox" id="autosave-checkbox">
+                <label for="autosave-checkbox">Otomatik Kaydetmeyi Etkinleştir</label>
             </div>
-
-            <button id="save-settings-button" class="run-button">Ayarları Kaydet ve Uygula</button>
+            <div class="setting-group">
+                <button id="export-project-button" class="run-button"><span class="mdi mdi-download"></span> Dışa Aktar</button>
+                <button id="import-project-button" class="run-button"><span class="mdi mdi-upload"></span> İçe Aktar</button>
+                <input type="file" id="import-project-input" accept=".json" style="display: none;">
+                <button id="cloud-save-button" class="run-button"><span class="mdi mdi-cloud-upload-outline"></span> Cloud'a Kaydet</button>
+            </div>
         </div>
     </div>
-    
+
     <div id="preview-options-modal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <h2>Canlı Önizleme Modu</h2>
-            <p>Önizlemeyi hangi kapsamda açmak istediğinizi seçin:</p>
-            <div class="setting-group" style="flex-direction: column; gap: 10px;">
-                <button class="run-button preview-option-button" data-mode="html_css">Sadece HTML ve CSS</button>
-                <button class="run-button preview-option-button" data-mode="full_stack">HTML, CSS ve JavaScript (Tam Yığın)</button>
+            <p>Canlı önizleme, geçerli dosyaları (index.html, style.css, script.js) birleştirerek çalıştırır.</p>
+            <div class="setting-group button-group">
+                <button class="run-button" data-preview-mode="full_stack">
+                    <span class="mdi mdi-cube-send"></span> Full Stack (HTML, CSS, JS)
+                </button>
+                <button class="run-button" data-preview-mode="html_css">
+                    <span class="mdi mdi-language-html5"></span> HTML ve CSS
+                </button>
+                <button class="run-button" data-preview-mode="html_only">
+                    <span class="mdi mdi-language-html5"></span> Sadece HTML
+                </button>
             </div>
         </div>
     </div>
     
+    <div id="preview-window" class="preview-window">
+        <div class="preview-header">
+            <h3>Canlı Önizleme</h3>
+            <div class="preview-toolbar">
+                <span id="preview-mode-indicator">Mod: </span>
+                <button id="open-preview-newtab" class="run-button" title="Yeni Sekmede Aç (Opsiyonel)">Yeni Sekmede Aç</button>
+            </div>
+            <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin" frameborder="0"></iframe>
+        </div>
+    </div>
+
     <div id="command-palette-modal" class="modal command-palette-modal">
         <div class="modal-content command-palette-content">
             <input type="text" id="command-palette-input" placeholder="Komut veya Dosya Adı (Ctrl+Shift+P)..." autocomplete="off">
-            <ul id="command-list" class="command-list">
-                </ul>
+            <ul id="command-list" class="command-list"></ul>
         </div>
     </div>
-    
+
     <ul id="context-menu" class="context-menu">
         <li data-action="new-file"><span class="mdi mdi-file-plus-outline"></span> Yeni Dosya</li>
         <li class="separator"></li>
@@ -214,7 +236,7 @@
         <li data-action="save"><span class="mdi mdi-content-save"></span> Kaydet</li>
     </ul>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs/loader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.20.0/min/vs/loader.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
