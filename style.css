@@ -87,8 +87,10 @@ body[data-theme="light"] {
     transition: background-color 0.1s;
 }
 
+/* Run Button Hover (Daha Belirgin) */
 .run-button:hover {
-    background-color: #0063a9;
+    background-color: #005696; /* Daha koyu bir mavi */
+    box-shadow: 0 0 5px rgba(0, 122, 204, 0.5); /* Hafif gölge efekti */
 }
 
 .settings-button {
@@ -96,8 +98,10 @@ body[data-theme="light"] {
     color: var(--main-text);
     padding: 5px;
 }
+/* Settings Button Hover (Daha Belirgin) */
 .settings-button:hover {
     background-color: var(--hover-bg);
+    color: var(--main-text); /* Rengin kaybolmamasını sağla */
 }
 
 .settings-button .mdi, .run-button .mdi {
@@ -545,6 +549,21 @@ body[data-terminal-theme="light"] .terminal-content {
     gap: 10px;
 }
 
+/* YENİ: Önizleme Kapat Butonu Stilleri */
+.preview-toolbar #close-preview-button {
+    background: none; 
+    color: var(--main-text); 
+    padding: 5px;
+    border-radius: 3px;
+    margin-left: 10px; 
+    transition: background-color 0.1s, color 0.1s;
+}
+.preview-toolbar #close-preview-button:hover {
+    background-color: #f44747; /* Kırmızımsı bir hover, kapatma hissi için */
+    color: white;
+}
+
+
 #preview-iframe {
     flex-grow: 1;
     width: 100%;
@@ -651,4 +670,26 @@ body.maximized .terminal-panel {
 /* Editör alanı, terminal alanı gizlendiği için kalan tüm yüksekliği almalı */
 body.maximized .editor-container {
     height: calc(100vh - var(--title-bar-height) - var(--tabs-height));
+}
+/* Önizleme Penceresi Kapat Butonu Stili */
+/* index.html içinde ilgili buton eklendi */
+.preview-window .preview-toolbar #close-preview-button {
+    background: none; 
+    color: var(--main-text); 
+    padding: 5px;
+    border-radius: 3px;
+    transition: background-color 0.1s, color 0.1s;
+}
+.preview-window .preview-toolbar #close-preview-button:hover {
+    background-color: #f44747; /* Kırmızımsı bir hover, kapatma hissi için */
+    color: white;
+}
+/* index.html içinde ilgili buton eklendi */
+.button{
+    background: none; 
+    color:#3c3c3c; 
+    padding: 5px;
+    border-radius: 3px;
+    background-color: #005696;
+    transition: background-color 0.1s, color 0.1s;
 }
