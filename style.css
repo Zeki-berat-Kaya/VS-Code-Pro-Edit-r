@@ -243,9 +243,12 @@ body[data-theme="light"] {
 .folder-entry {
     font-weight: bold;
 }
-.folder-entry.open .mdi-folder {
-    content: "\F0257"; /* mdi-folder-open */
+
+/* Klasörün ikonunu aç-kapa durumuna göre değiştirme (JS tarafından kontrol ediliyor, bu CSS'i simülasyon amaçlı tutuyorum) */
+.folder-entry.open .mdi-folder:before {
+    content: "\F0257"; /* mdi-folder-open ikonu */
 }
+
 
 /* --- EDİTÖR VE TERMİNAL --- */
 
@@ -274,20 +277,16 @@ body[data-theme="light"] {
     cursor: pointer;
     background-color: var(--editor-bg);
     color: var(--inactive-text);
-    font-size: 13px;
-    position: relative;
 }
 
 .tab-item:hover {
     background-color: var(--hover-bg);
-    color: var(--main-text);
 }
 
 .tab-item.active {
     background-color: var(--editor-bg);
     color: var(--main-text);
-    border-top: 2px solid var(--accent-color);
-    padding-top: 3px;
+    border-bottom: 2px solid var(--accent-color);
 }
 
 .tab-item .mdi {
@@ -295,68 +294,53 @@ body[data-theme="light"] {
     font-size: 16px;
 }
 
-/* Sekme Kapatma Butonu/Noktası */
 .close-tab-button {
-    margin-left: 8px;
+    margin-left: 10px;
     color: var(--inactive-text);
-    font-size: 16px;
     padding: 2px;
+    border-radius: 2px;
 }
 
 .close-tab-button:hover {
-    color: white;
-    background-color: #555;
-    border-radius: 50%;
-}
-
-.tab-item.active .unsaved-dot {
-    margin-left: 5px;
-    font-size: 18px;
-    color: #ffd700;
-}
-
-.tab-item.active .unsaved-dot:hover {
-    color: white;
-    background-color: #555;
-    border-radius: 50%;
+    color: var(--main-text);
+    background-color: var(--hover-bg);
 }
 
 
 /* Editör Alanı */
 .editor-container {
     flex-grow: 1;
-    height: calc(100% - var(--tabs-height) - 150px); /* Terminal yüksekliğini düş */
     overflow: hidden;
+    /* Kalan yüksekliği terminal paneli ile paylaştırmak için */
+    height: calc(100% - var(--tabs-height) - 150px); /* 150px terminal yüksekliği varsayımı */
 }
 
 
 /* Terminal Paneli */
 .terminal-panel {
-    height: 150px; /* Varsayılan terminal yüksekliği */
-    min-height: 100px;
-    max-height: 50vh; 
-    background-color: var(--sidebar-bg);
+    height: 150px; /* Sabit terminal yüksekliği */
+    min-height: 150px;
     border-top: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
+    background-color: var(--editor-bg);
     overflow: hidden;
 }
 
 .panel-tabs {
     display: flex;
-    align-items: center;
-    background-color: var(--sidebar-bg);
-    padding: 0 10px;
+    height: var(--tabs-height);
     border-bottom: 1px solid var(--border-color);
+    align-items: center;
+    padding-left: 10px;
 }
 
 .panel-tab {
-    padding: 5px 15px;
+    padding: 5px 10px;
     cursor: pointer;
     font-size: 13px;
-    text-transform: uppercase;
     color: var(--inactive-text);
-    border-bottom: 2px solid transparent;
+    border-right: 1px solid var(--border-color);
 }
 
 .panel-tab.active {
@@ -380,7 +364,7 @@ body[data-theme="light"] {
     font-family: 'Consolas', 'Courier New', monospace;
     font-size: 12px;
     overflow: auto;
-    white-space: pre-wrap; 
+    white-space: pre-wrap;
     height: 100%;
     margin: 0;
 }
@@ -390,14 +374,28 @@ body[data-theme="light"] {
 }
 
 /* Terminal Tema Renkleri */
-body[data-terminal-theme="dark"] .terminal-content { background-color: #000; color: #f0f0f0; }
-body[data-terminal-theme="light"] .terminal-content { background-color: #fff; color: #1e1e1e; }
+body[data-terminal-theme="dark"] .terminal-content {
+    background-color: #000;
+    color: #f0f0f0;
+}
+body[data-terminal-theme="light"] .terminal-content {
+    background-color: #fff;
+    color: #1e1e1e;
+}
 
 /* Terminal Output Renkleri */
-.output-success { color: #6a9955; } /* Yeşil */
-.output-error { color: #f44747; } /* Kırmızı */
-.output-warn { color: #dcdcaa; } /* Sarı */
-.output-info { color: #569cd6; } /* Mavi */
+.output-success {
+    color: #6a9955;
+} /* Yeşil */
+.output-error {
+    color: #f44747;
+} /* Kırmızı */
+.output-warn {
+    color: #dcdcaa;
+} /* Sarı */
+.output-info {
+    color: #569cd6;
+} /* Mavi */
 
 
 /* --- ALT DURUM ÇUBUĞU --- */
@@ -419,6 +417,7 @@ body[data-terminal-theme="light"] .terminal-content { background-color: #fff; co
     align-items: center;
     gap: 5px;
     cursor: default;
+    padding: 0 5px;
 }
 
 .status-item button {
@@ -426,52 +425,52 @@ body[data-terminal-theme="light"] .terminal-content { background-color: #fff; co
     border: none;
     color: white;
     cursor: pointer;
-    font-size: 12px;
     padding: 2px 5px;
+    transition: background-color 0.1s;
 }
-
 .status-item button:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.status-group {
+    display: flex;
+    align-items: center;
+}
+
+.left-group .status-item {
+    cursor: pointer;
+}
+.left-group .status-item:hover {
+    background-color: rgba(0, 0, 0, 0.2);
 }
 
 
-/* --- MODAL STILLERI --- */
+/* --- MODALLAR VE POPUP'LAR --- */
 
-/* Modal Arkaplanı */
 .modal {
-    display: none; 
-    position: fixed;
-    z-index: 1000; 
+    display: none; /* Varsayılan olarak gizli */
+    position: fixed; 
+    z-index: 1000;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0,0,0,0.7); 
+    background-color: rgba(0, 0, 0, 0.4); 
 }
 
-/* Modal İçerik Kutusu */
 .modal-content {
-    background-color: var(--sidebar-bg);
-    margin: 10% auto; 
-    padding: 30px;
-    border: 1px solid var(--accent-color);
-    width: 400px;
+    background-color: var(--editor-bg);
+    margin: 15% auto; /* Ortalamak için */
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    width: 80%;
+    max-width: 500px;
     border-radius: 5px;
-    color: var(--main-text);
+    position: relative;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.modal-content h2 {
-    color: var(--accent-color);
-    margin-top: 0;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-}
-
-/* Kapatma Butonu */
 .close-button {
     color: var(--inactive-text);
     float: right;
@@ -482,49 +481,88 @@ body[data-terminal-theme="light"] .terminal-content { background-color: #fff; co
 
 .close-button:hover,
 .close-button:focus {
-    color: white;
+    color: var(--main-text);
     text-decoration: none;
     cursor: pointer;
 }
 
-/* Ayar Grupları */
 .setting-group {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .setting-group label {
-    font-weight: 500;
+    min-width: 150px;
 }
 
-.setting-group select, .setting-group input[type="number"] {
+.setting-group select,
+.setting-group input[type="number"] {
     padding: 5px;
-    border-radius: 3px;
     border: 1px solid var(--border-color);
-    background-color: var(--editor-bg);
+    background-color: var(--sidebar-bg);
     color: var(--main-text);
+    border-radius: 3px;
 }
 
-.setting-group input[type="checkbox"] {
-    transform: scale(1.2);
-    cursor: pointer;
+
+/* Canlı Önizleme Penceresi */
+.preview-window {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    height: 80%;
+    background-color: var(--editor-bg);
+    border: 1px solid var(--border-color);
+    z-index: 999; 
+    display: none; /* JS ile açılacak */
+    flex-direction: column;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 }
 
-/* --- KOMUT PALETİ STİLLERİ --- */
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    background-color: var(--title-bar-bg);
+    user-select: none;
+    border-bottom: 1px solid var(--border-color);
+}
 
+.preview-header h3 {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.preview-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#preview-iframe {
+    flex-grow: 1;
+    width: 100%;
+    background-color: white; /* Önizleme varsayılan arka planı */
+}
+
+/* Komut Paleti Stili */
 .command-palette-modal .modal-content {
-    margin-top: 50px;
-    width: 600px;
+    margin-top: 5%;
+    max-width: 600px;
     padding: 0;
     border: none;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
 #command-palette-input {
     width: 100%;
-    padding: 15px;
+    padding: 10px 15px;
     border: none;
     border-bottom: 1px solid var(--border-color);
     font-size: 14px;
@@ -535,6 +573,9 @@ body[data-terminal-theme="light"] .terminal-content { background-color: #fff; co
 }
 
 .command-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
     max-height: 400px;
     overflow-y: auto;
 }
@@ -550,24 +591,27 @@ body[data-terminal-theme="light"] .terminal-content { background-color: #fff; co
     background-color: var(--hover-bg);
     color: white;
 }
+
 .command-list li .mdi {
     margin-right: 5px;
 }
 
-/* --- SAĞ TIK MENÜSÜ --- */
+/* Context Menu (Sağ Tık Menüsü) */
 .context-menu {
     position: absolute;
     background-color: var(--sidebar-bg);
     border: 1px solid var(--border-color);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    padding: 4px 0;
+    z-index: 2000;
+    list-style: none;
+    margin: 0;
+    display: none; /* JS ile görünür olacak */
     border-radius: 3px;
-    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
-    z-index: 100;
-    min-width: 180px;
-    display: none; /* Varsayılan olarak gizli */
 }
 
 .context-menu li {
-    padding: 5px 15px;
+    padding: 6px 15px;
     font-size: 13px;
     cursor: pointer;
     white-space: nowrap;
@@ -606,5 +650,5 @@ body.maximized .terminal-panel {
 
 /* Editör alanı, terminal alanı gizlendiği için kalan tüm yüksekliği almalı */
 body.maximized .editor-container {
-    height: calc(100vh - var(--title-bar-height) - var(--tabs-height) - var(--status-bar-height));
+    height: calc(100vh - var(--title-bar-height) - var(--tabs-height));
 }
