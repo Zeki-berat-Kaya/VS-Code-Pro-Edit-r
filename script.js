@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewWindowElement = document.getElementById('preview-window');
     const previewIframe = document.getElementById('preview-iframe');
     const previewModeIndicator = document.getElementById('preview-mode-indicator');
+    const closePreviewButton = document.getElementById('close-preview-button'); // YENİ: Önizleme Kapat Butonu
     
     // Ayar ve Kontrol Bileşenleri
     const themeSelect = document.getElementById('theme-select');
@@ -440,6 +441,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Canlı Önizleme kapatma fonksiyonu (YENİ)
+    function closeLivePreview() {
+        if (previewWindowElement) {
+            previewWindowElement.style.display = 'none';
+        }
+        logToTerminal(`Canlı Önizleme kapatıldı.`, 'info');
+    }
+
+
     // Canlı Önizleme fonksiyonu (JS ile HTML, CSS, JS içeriğini birleştirerek çalıştırır)
     function openLivePreview(mode) {
         saveAllContents(); // Tüm dosyaları kaydet
@@ -664,6 +674,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 newTab.document.close();
             }
         });
+        
+        // YENİ: Önizleme Kapatma Dinleyicisi
+        if (closePreviewButton) {
+            closePreviewButton.addEventListener('click', closeLivePreview);
+        }
 
 
         // Ayar Kontrolleri
@@ -776,11 +791,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Çalıştırma
             { id: 'runCode', name: 'Kodu Çalıştır', action: runCode, shortcut: 'F5 / Ctrl+Enter' },
             { id: 'livePreview', name: 'Canlı Önizlemeyi Başlat', action: () => previewOptionsModal.style.display = 'block', shortcut: 'Ctrl+Shift+R' },
+            { id: 'closePreview', name: 'Canlı Önizlemeyi Kapat', action: closeLivePreview, shortcut: 'Escape' }, // YENİ Komut
             // Ayarlar ve Arayüz
             { id: 'showSettings', name: 'Ayarları Aç', action: () => settingsModal.style.display = 'block', shortcut: 'Ctrl+,' },
             { id: 'formatCode', name: 'Kodu Biçimlendir (Prettier)', action: formatCode, shortcut: 'Alt+Shift+F' },
             { id: 'toggleAutosave', name: 'Otomatik Kaydetmeyi Aç/Kapat', action: () => toggleAutosave(!isAutosaveEnabled), shortcut: '' },
-            { id: 'toggleMaximize', name: 'Tam Ekran/Küçült', action: toggleMaximize, shortcut: 'F11' }, // YENİ Komut
+            { id: 'toggleMaximize', name: 'Tam Ekran/Küçült', action: toggleMaximize, shortcut: 'F11' }, 
             { id: 'switchExplorer', name: 'Gezgin (Explorer) Paneline Git', action: () => switchSidebarPanel('explorer'), shortcut: '' },
             // Kalıcılık Simülasyonu
             { id: 'cloudSave', name: 'Cloud\'a Kaydet (Yedek)', action: cloudSaveSimulation, shortcut: 'Ctrl+Shift+U' }
@@ -883,6 +899,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Canlı Önizlemeyi Kapat (ESC)
+            if (event.key === 'Escape' && previewWindowElement.style.display === 'flex') {
+                event.preventDefault();
+                closeLivePreview();
+            }
+            
             // Diğer Kısayollar
             if (event.ctrlKey && event.key.toLowerCase() === 'n') {
                 event.preventDefault();
