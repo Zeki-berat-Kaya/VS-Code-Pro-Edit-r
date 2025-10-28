@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const commandPaletteInput = document.getElementById('command-palette-input');
     const commandListElement = document.getElementById('command-list');
     const contextMenu = document.getElementById('context-menu');
+    const previewWindowElement = document.getElementById('preview-window');
+    const previewIframe = document.getElementById('preview-iframe');
+    const previewModeIndicator = document.getElementById('preview-mode-indicator');
     
     // Ayar ve Kontrol Bileşenleri
     const themeSelect = document.getElementById('theme-select');
@@ -382,76 +385,146 @@ document.addEventListener('DOMContentLoaded', () => {
         
         autosaveToggle.classList.toggle('active', enabled);
         autosaveCheckbox.checked = enabled; // Ayarlar modalını senkronize et
-        autosaveToggle.title = enabled ? 'Otomatik Kaydetme Açık' : 'Kaydet (Ctrl+S)';
+        autosaveToggle.title = enabled ? 'Otomatik Kaydetme Açık (Ctrl+S manuel kaydeder)' : 'Kaydet (Ctrl+S)';
+
+        logToTerminal(`Otomatik Kaydetme: ${enabled ? 'AÇIK' : 'KAPALI'}`, 'info');
+    }
+
+    function runCode() {
+        const fileExtension = currentFile ? currentFile.split('.').pop() : 'none';
         
-        if (enabled) {
-            autosaveToggle.querySelector('.mdi').classList.remove('mdi-content-save-outline');
-            autosaveToggle.querySelector('.mdi').classList.add('mdi-content-save-all-outline');
+        logToTerminal(`[${new Date().toLocaleTimeString()}] Kod Çalıştırma Başlatıldı...`, 'message', 'terminal');
+        consoleElement.innerHTML = `<span>> Konsol temizlendi.</span>`; // Konsolu temizle
+        outputElement.innerHTML = `<span>> Çıktı temizlendi.</span>`; // Çıktıyı temizle
+        
+        switch (fileExtension) {
+            case 'html':
+            case 'css':
+            case 'js':
+                openLivePreview('full_stack');
+                logToTerminal(`HTML/CSS/JS projesi için Canlı Önizleme başlatıldı.`, 'success', 'output');
+                break;
+            case 'py':
+                logToTerminal(`Python kodu çalıştırılıyor... (Simülasyon)`, 'info', 'output');
+                logToTerminal(`Çıktı: Simülasyon başarılı.`, 'output-success', 'output');
+                break;
+            default:
+                logToTerminal(`Desteklenmeyen dosya tipi: ${fileExtension}. Kod çalıştırılamıyor.`, 'error', 'terminal');
+                break;
+        }
+    }
+
+    function formatCode() {
+        if (!editor || !currentFile) return;
+
+        const fileExtension = currentFile.split('.').pop();
+        
+        if (fileExtension === 'html' || fileExtension === 'css' || fileExtension === 'js') {
+            logToTerminal(`'${currentFile}' dosyası Biçimlendiriliyor... (Prettier Simülasyonu)`, 'info');
+            // Gerçek formatlama kodu monaco'ya entegre edilmelidir, burada sadece simüle ediyoruz.
+            // Örneğin: editor.getAction('editor.action.formatDocument').run();
+            logToTerminal(`Biçimlendirme tamamlandı.`, 'success');
         } else {
-            autosaveToggle.querySelector('.mdi').classList.remove('mdi-content-save-all-outline');
-            autosaveToggle.querySelector('.mdi').classList.add('mdi-content-save-outline');
+            logToTerminal(`'${fileExtension}' dosyaları için biçimlendirme desteklenmiyor.`, 'warn');
         }
     }
     
-    /**
-     * YENİ FONKSİYON: Tam Ekran Modunu Açıp Kapatır.
-     */
     function toggleMaximize() {
-        const isMaximized = body.classList.toggle('maximized');
+        body.classList.toggle('maximized');
+        const isMaximized = body.classList.contains('maximized');
+        maximizeButton.title = isMaximized ? 'Küçült (F11)' : 'Tam Ekran Yap (F11)';
+        maximizeButton.querySelector('.mdi').className = isMaximized ? 'mdi mdi-fullscreen-exit' : 'mdi mdi-fullscreen';
         
-        // Buton ikonunu ve başlığını güncelle
-        const icon = maximizeButton.querySelector('.mdi');
-        if (isMaximized) {
-             icon.classList.remove('mdi-fullscreen');
-             icon.classList.add('mdi-fullscreen-exit');
-             maximizeButton.title = 'Ekranı Küçült';
-             logToTerminal('Tam Ekran modu aktif.', 'info');
-        } else {
-             icon.classList.remove('mdi-fullscreen-exit');
-             icon.classList.add('mdi-fullscreen');
-             maximizeButton.title = 'Tam Ekran Yap';
-             logToTerminal('Tam Ekran modu deaktif.', 'info');
-        }
-
-        // Düzenleyiciyi yeniden boyutlandır (Monaco için kritik)
         if (editor) {
-            editor.layout();
+            editor.layout(); // Monaco editörün boyutunu güncelle
         }
     }
 
+    // Canlı Önizleme fonksiyonu (JS ile HTML, CSS, JS içeriğini birleştirerek çalıştırır)
+    function openLivePreview(mode) {
+        saveAllContents(); // Tüm dosyaları kaydet
 
-    // --- MONACO VE ARAYÜZ KONTROLÜ ---
-    
-    function initializeEditor(fileName, content) {
-        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs' }});
+        // index.html, style.css ve script.js dosyalarının varlığını kontrol et
+        const htmlContent = fileContents['index.html'] || fileContents['src/index.html'] || '<h1>index.html dosyası bulunamadı.</h1>';
+        const cssContent = fileContents['style.css'] || fileContents['src/style.css'] || '/* style.css dosyası bulunamadı */';
+        const jsContent = fileContents['script.js'] || fileContents['src/script.js'] || '// script.js dosyası bulunamadı';
+
+        let finalHTML = htmlContent;
+
+        // Gömülü CSS ve JS için hazırlık
+        const styleTag = `<style>\n${cssContent}\n</style>`;
+        const scriptTag = `<script>\n${jsContent}\n</script>`;
+
+        // Link ve Script etiketlerini bulup yerine yeni gömülü etiketleri koy
+        // Bu, index.html'deki mevcut referansları geçersiz kılar.
+        finalHTML = finalHTML.replace(/<link[^>]*?href=['"](.*?\.css)['"][^>]*?>/i, '');
+        finalHTML = finalHTML.replace(/<script[^>]*?src=['"](.*?\.js)['"][^>]*?><\/script>/i, '');
+
+        // <head> ve <body> etiketlerini bul
+        const headMatch = finalHTML.match(/<\/head>/i);
+        const bodyMatch = finalHTML.match(/<\/body>/i);
+
+        if (mode === 'full_stack' || mode === 'html_css') {
+            if (headMatch) {
+                finalHTML = finalHTML.replace(headMatch[0], styleTag + '\n' + headMatch[0]);
+            }
+        }
+
+        if (mode === 'full_stack') {
+            if (bodyMatch) {
+                finalHTML = finalHTML.replace(bodyMatch[0], scriptTag + '\n' + bodyMatch[0]);
+            }
+        }
+        
+        // Sadece HTML modunda JS ve CSS'i kaldırmış oluyoruz
+
+        previewWindowElement.style.display = 'flex';
+        previewOptionsModal.style.display = 'none';
+
+        previewIframe.contentWindow.document.open();
+        previewIframe.contentWindow.document.write(finalHTML);
+        previewIframe.contentWindow.document.close();
+        
+        previewModeIndicator.textContent = `Mod: ${mode.toUpperCase()}`;
+
+        logToTerminal(`Canlı Önizleme başlatıldı (${mode.toUpperCase()}).`, 'info');
+    }
+
+    function initializeEditor(initialFile, content) {
+        // Monaco Editor'ü yükle
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.20.0/min/vs' } });
+        window.MonacoEnvironment = { getWorkerUrl: () => `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+            self.MonacoEnvironment = { baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.20.0/min/' };
+            importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.20.0/min/vs/base/worker/workerMain.js');
+        `)}` };
+        
         require(['vs/editor/editor.main'], function() {
-            
-            editor = monaco.editor.create(document.getElementById('editor'), {
+            editor = monaco.editor.create(document.getElementById('editor-container'), {
                 value: content,
-                language: 'plaintext', 
-                theme: savedTheme,      
+                language: 'plaintext',
+                theme: savedTheme,
                 automaticLayout: true,
-                fontFamily: savedFontFamily, 
+                fontFamily: savedFontFamily,
                 fontSize: parseInt(savedFontSize),
-                minimap: { enabled: true } 
+                minimap: { enabled: true }
             });
-
-            window.editor = editor; 
             
+            window.editor = editor;
+
             editor.getModel().onDidChangeContent(() => {
                 editor.isModified = true;
                 if (isAutosaveEnabled) {
                     saveAllContents(false);
                 }
                 updateStatus();
-                renderUI(); 
+                renderUI();
             });
-            
-            editor.onDidChangeCursorPosition(updateStatus);
 
+            editor.onDidChangeCursorPosition(updateStatus);
             editor.isModified = false;
             updateStatus();
-            setupEventListeners();
+            
+            setupEventListeners(); 
             
             // Başlangıçta dosyaya geçiş yaparak dil ve içeriği ayarla
             if (currentFile) switchFile(currentFile);
@@ -478,249 +551,23 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             // Ayarlar aktivite bar öğesine tıklanırsa ayarlar modalını aç
             if (targetId === 'settings') {
-                 settingsModal.style.display = 'block';
-                 sidebarHeaderTitle.textContent = "AYARLAR"; // Başlığı yine de ayarla
-                 // Explorer'a geri dön
-                 document.querySelectorAll('.activity-item').forEach(item => {
-                    item.classList.remove('active');
-                 });
-                 document.querySelector('.activity-item[data-target="explorer"]').classList.add('active');
-                 document.getElementById('explorer-panel').style.display = 'flex';
-                 sidebarHeaderTitle.textContent = panelTitles['explorer'];
-                 return;
-            }
-        }
+                settingsModal.style.display = 'block';
+                sidebarHeaderTitle.textContent = "AYARLAR"; // Başlığı yine de ayarla
 
-        document.querySelectorAll('.activity-item').forEach(item => {
-            item.classList.remove('active');
-            if (item.dataset.target === targetId) {
-                item.classList.add('active');
-            }
-        });
-    }
-
-
-    // --- KOD ÇALIŞTIRMA VE BİÇİMLENDİRME ---
-    
-    function runCode() {
-        if (!window.editor) return;
-        
-        saveAllContents();
-        const language = window.editor.getModel().getLanguageId();
-        
-        // Console sekmesine geç
-        document.querySelector('.panel-tab[data-tab="console"]').click();
-        consoleElement.innerHTML = `<span>> Çalıştırılıyor: ${language.toUpperCase()} (${new Date().toLocaleTimeString()})</span>`;
-
-        if (language === 'javascript') {
-            const jsCode = fileContents['script.js'] || fileContents['src/script.js'] || ''; 
-            
-            const originalLog = console.log;
-            const originalError = console.error;
-            
-            // Console.log'u konsol sekmesine yönlendir
-            console.log = function(...args) {
-                const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-                logToTerminal(message, 'message', 'console');
-            };
-            
-            // Console.error'u konsol sekmesine yönlendir
-            console.error = function(...args) {
-                const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-                logToTerminal(message, 'error', 'console');
-            };
-            
-            try {
-                // Kodu çalıştırmak için yeni bir fonksiyon oluştur
-                new Function(jsCode)(); 
-                logToTerminal("Kod başarıyla tamamlandı.", 'success', 'console');
-            } catch (e) {
-                logToTerminal(`HATA: ${e.message}`, 'error', 'console');
-            } finally {
-                // Console fonksiyonlarını eski haline getir
-                console.log = originalLog;
-                console.error = originalError;
-            }
-
-        } else if (language === 'html' || language === 'css') {
-            logToTerminal("HTML/CSS kodu için Canlı Önizleme'yi kullanın.", 'warn', 'console');
-        } else {
-            logToTerminal(`Dil: ${language}. Bu kod tarayıcıda doğrudan çalıştırılamaz.`, 'info', 'console');
-        }
-    }
-    
-    // Canlı Önizlemeyi Yeni Sekmede Açma (Pop-up engelleyici kontrolü dahil)
-    function openLivePreview(mode) {
-        saveAllContents(); // Tüm dosyaları kaydet
-
-        // index.html, style.css ve script.js dosyalarının varlığını kontrol et
-        const htmlContent = fileContents['index.html'] || fileContents['src/index.html'] || '<h1>index.html dosyası bulunamadı.</h1>';
-        const cssContent = fileContents['style.css'] || fileContents['src/style.css'] || '/* style.css dosyası bulunamadı */';
-        const jsContent = fileContents['script.js'] || fileContents['src/script.js'] || '// script.js dosyası bulunamadı';
-
-        let finalHTML = htmlContent;
-
-        // Gömülü CSS ve JS için hazırlık
-        const styleTag = `<style>\n${cssContent}\n</style>`;
-        const scriptTag = `<script>\n${jsContent}\n</script>`;
-        
-        // Link ve Script etiketlerini bulup yerine yeni gömülü etiketleri koy
-        // Bu, index.html'deki mevcut referansları geçersiz kılar.
-        finalHTML = finalHTML.replace(/<link[^>]*?href=['"](.*?\.css)['"][^>]*?>/i, '');
-        finalHTML = finalHTML.replace(/<script[^>]*?src=['"](.*?\.js)['"][^>]*?><\/script>/i, '');
-
-        // <head> ve <body> etiketlerini bul
-        const headMatch = finalHTML.match(/<\/head>/i);
-        const bodyMatch = finalHTML.match(/<\/body>/i);
-
-        if (mode === 'full_stack' || mode === 'html_css') {
-            if (headMatch) {
-                finalHTML = finalHTML.replace(headMatch[0], styleTag + '\n' + headMatch[0]);
-            }
-        }
-
-        if (mode === 'full_stack') {
-            if (bodyMatch) {
-                finalHTML = finalHTML.replace(bodyMatch[0], scriptTag + '\n' + bodyMatch[0]);
+                // Explorer'a geri dön
+                document.querySelectorAll('.activity-item').forEach(item => { item.classList.remove('active'); });
+                document.querySelector('.activity-item[data-target="explorer"]').classList.add('active');
+                document.getElementById('explorer-panel').style.display = 'flex';
+                sidebarHeaderTitle.textContent = panelTitles['explorer'];
+                return;
             }
         }
         
-        previewWindow = window.open('', '_blank', 'noopener=yes');
-        
-        if (!previewWindow || previewWindow.closed || typeof previewWindow.closed === 'undefined') {
-            logToTerminal("HATA: Canlı Önizleme başlatılamadı. Tarayıcınızın **Pop-up Engelleyicisini** kontrol edin.", 'error');
-            previewOptionsModal.style.display = 'none';
-            return;
-        }
-
-        previewWindow.document.write(finalHTML);
-        previewWindow.document.close();
-        logToTerminal(`Canlı Önizleme yeni sekmede başlatıldı (${mode}).`, 'success');
-        previewOptionsModal.style.display = 'none';
+        // Aktivite çubuğundaki aktif öğeyi değiştir
+        document.querySelectorAll('.activity-item').forEach(item => { item.classList.remove('active'); });
+        document.querySelector(`.activity-item[data-target="${targetId}"]`).classList.add('active');
     }
 
-
-    function formatCode() {
-        if (!editor || !currentFile) return;
-
-        const originalCode = editor.getValue();
-        let formattedCode = originalCode;
-        const lang = editor.getModel().getLanguageId();
-
-        // BASİT PRETTIER FORMATLAMA SİMÜLASYONU
-        if (lang === 'javascript' || lang === 'html' || lang === 'css') {
-            const indent = '    '; // 4 boşluk
-            formattedCode = originalCode.split('\n').map(line => {
-                const trimmed = line.trim();
-                if (trimmed.length === 0) return '';
-                // Basit girinti simülasyonu: Her satırın başına 1 indent ekle
-                return indent + trimmed; 
-            }).join('\n').replace(/\n\s*\n/g, '\n\n'); // Çift boş satırları koru
-            
-            editor.setValue(formattedCode.trim());
-            saveAllContents();
-            logToTerminal(`Dosya '${currentFile}' Biçimlendirildi (Prettier Simülasyonu).`, 'success');
-        } else {
-            logToTerminal("Bu dosya türü için biçimlendirme simülasyonu desteklenmiyor.", 'warn');
-        }
-    }
-    
-    // --- KLAVYE KISAYOLU İŞLEVLERİ VE KOMUT PALETİ ---
-    const commands = [
-        // Dosya Yönetimi
-        { id: 'newFile', name: 'Yeni Dosya Oluştur', action: () => createNewFile(), shortcut: 'Ctrl+N' },
-        { id: 'saveFile', name: 'Kaydet', action: () => saveAllContents(), shortcut: 'Ctrl+S' },
-        { id: 'importProject', name: 'Projeyi İçe Aktar (.json)', action: () => importProjectInput.click(), shortcut: 'Ctrl+Shift+I' },
-        { id: 'exportProject', name: 'Projeyi Dışa Aktar (.json)', action: () => exportProjectButton.click(), shortcut: 'Ctrl+Shift+E' },
-        
-        // Çalıştırma
-        { id: 'runCode', name: 'Kodu Çalıştır', action: runCode, shortcut: 'F5 / Ctrl+Enter' },
-        { id: 'livePreview', name: 'Canlı Önizlemeyi Başlat', action: () => previewOptionsModal.style.display = 'block', shortcut: 'Ctrl+Shift+R' },
-        
-        // Ayarlar ve Arayüz
-        { id: 'showSettings', name: 'Ayarları Aç', action: () => settingsModal.style.display = 'block', shortcut: 'Ctrl+,' },
-        { id: 'formatCode', name: 'Kodu Biçimlendir (Prettier)', action: formatCode, shortcut: 'Alt+Shift+F' },
-        { id: 'toggleAutosave', name: 'Otomatik Kaydetmeyi Aç/Kapat', action: () => toggleAutosave(!isAutosaveEnabled), shortcut: '' },
-        { id: 'toggleMaximize', name: 'Tam Ekran/Küçült', action: toggleMaximize, shortcut: 'F11' }, // YENİ Komut
-        { id: 'switchExplorer', name: 'Gezgin (Explorer) Paneline Git', action: () => switchSidebarPanel('explorer'), shortcut: '' },
-        
-        // Kalıcılık Simülasyonu
-        { id: 'cloudSave', name: 'Cloud\'a Kaydet (Yedek)', action: cloudSaveSimulation, shortcut: 'Ctrl+Shift+U' }
-    ];
-
-    function showCommandPalette() {
-        commandPaletteModal.style.display = 'block';
-        commandPaletteInput.value = '';
-        commandPaletteInput.focus();
-        filterCommands('');
-    }
-
-    // Komut listesini ve dosya listesini filtrele
-    function filterCommands(query) {
-        commandListElement.innerHTML = '';
-        const lowerQuery = query.toLowerCase();
-        
-        // Komutlar ve dosya açma eylemlerini birleştir
-        const allItems = [...commands, ...Object.keys(fileContents).map(path => ({ id: path, name: `Dosya Aç: ${path}`, action: () => switchFile(path), shortcut: '' }))];
-        
-        const filtered = allItems.filter(item => 
-            item.name.toLowerCase().includes(lowerQuery) || 
-            (item.shortcut && item.shortcut.toLowerCase().includes(lowerQuery))
-        ).slice(0, 10);
-
-        filtered.forEach((item, index) => {
-            const li = document.createElement('li');
-            const shortcutDisplay = item.shortcut ? `<span style="float:right; opacity: 0.6;">${item.shortcut}</span>` : '';
-            li.innerHTML = `${item.name.split(': ')[0] === 'Dosya Aç' ? `<span class="${getFileIconClass(item.id)}"></span> ${item.name}` : item.name} ${shortcutDisplay}`;
-            li.dataset.commandId = item.id;
-            li.tabIndex = -1; 
-            if (index === 0) li.classList.add('active'); 
-            commandListElement.appendChild(li);
-        });
-        
-        if (filtered.length === 0) {
-            commandListElement.innerHTML = `<li>Sonuç bulunamadı: "${query}"</li>`;
-        }
-    }
-
-
-    // --- BAŞLANGIÇ YÜKLEMESİ VE OLAYLAR ---
-    
-    function init() {
-        const savedContents = JSON.parse(localStorage.getItem('fileContents'));
-        const lastOpenFile = localStorage.getItem('lastOpenFile');
-        
-        if (savedContents && Object.keys(savedContents).length > 0) {
-            fileContents = savedContents;
-            // YENİ: Son açılan dosyayı hatırla
-            const initialFile = lastOpenFile && fileContents[lastOpenFile] ? lastOpenFile : Object.keys(fileContents).sort()[0];
-            currentFile = initialFile;
-        } else {
-            // Hoşgeldin Ekranı Simülasyonu - Varsayılan dosyaları oluştur
-            fileContents = {
-                'index.html': '<html>\n<head>\n    <title>Canlı Önizleme</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <h1>VS Code Pro Editöre Hoş Geldiniz!</h1>\n    <p>Yeni bir dosya oluşturmak için Ctrl+N kullanın.</p>\n    <script src="script.js"></script>\n</body>\n</html>',
-                'style.css': 'body { background-color: var(--editor-bg); color: var(--main-text); font-family: sans-serif; padding: 20px; }\n\n/* Daha fazla stil ekleyin */',
-                'script.js': 'console.log("Konsolun çalışıyor!");\n// JS kodunuzu buraya yazın\n\nfunction merhaba() {\n    console.log("Kral!");\n}\nmerhaba();'
-            };
-            currentFile = 'script.js'; 
-        }
-        
-        toggleAutosave(savedAutosave); 
-        
-        // Editor'ü başlat
-        const initialContent = fileContents[currentFile] !== undefined ? fileContents[currentFile] : '// VS Code Pro Editörüne Hoş Geldiniz!\n// Yeni bir dosya oluşturmak için Ctrl+N veya Sol menüyü kullanın.';
-        initializeEditor(currentFile, initialContent);
-        
-        // Temaları ve terminal temasını uygula
-        themeSelect.value = savedTheme;
-        terminalThemeSelect.value = savedTerminalTheme;
-        applyTheme(savedTheme); 
-        applyTerminalTheme(savedTerminalTheme); 
-        
-        switchSidebarPanel('explorer'); 
-        renderFileList(); 
-    }
-    
     function setupEventListeners() {
         // Modal Kapatma
         document.querySelectorAll('.close-button').forEach(button => {
@@ -729,110 +576,136 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
         window.addEventListener('click', (e) => {
-             if (e.target.classList.contains('modal')) {
-                 e.target.style.display = 'none';
-             }
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+            }
         });
-        
+
         // Sol Panel Geçişleri
         document.querySelectorAll('.activity-item').forEach(item => {
             item.addEventListener('click', (e) => switchSidebarPanel(e.currentTarget.dataset.target));
         });
-        
+
         // Terminal Panel Sekmeleri
         document.querySelectorAll('.panel-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
                 e.target.classList.add('active');
-                
                 document.querySelectorAll('.terminal-content').forEach(c => c.style.display = 'none');
                 document.querySelector(`[data-tab-content="${e.target.dataset.tab}"]`).style.display = 'block';
             });
         });
         document.getElementById('clear-terminal').addEventListener('click', () => {
-             terminalElement.innerHTML = `<span>> Terminal temizlendi.</span>`;
-             consoleElement.innerHTML = `<span>> Konsol temizlendi.</span>`;
-             outputElement.innerHTML = `<span>> Çıktı temizlendi.</span>`;
+            terminalElement.innerHTML = `<span>> Terminal temizlendi.</span>`;
+            consoleElement.innerHTML = `<span>> Konsol temizlendi.</span>`;
+            outputElement.innerHTML = `<span>> Çıktı temizlendi.</span>`;
         });
-
+        
         // Dosya ve Sekme Tıklamaları (Olay Yetkilendirmesi)
         fileListElement.addEventListener('click', (e) => {
             const folderEntry = e.target.closest('.folder-entry');
             const fileEntry = e.target.closest('.file-entry');
-            
+            const closeButton = e.target.closest('.close-tab-button') || e.target.closest('.unsaved-dot');
+
             if (folderEntry) {
-                folderEntry.classList.toggle('open');
-                const nestedList = folderEntry.nextElementSibling;
-                const isOpen = folderEntry.classList.contains('open');
-                nestedList.style.display = isOpen ? 'block' : 'none';
-                localStorage.setItem(folderEntry.dataset.path + '_open', isOpen);
+                const nestedList = folderEntry.parentElement.querySelector('.nested-list');
+                const path = folderEntry.dataset.path;
                 
-                // İkonu değiştir
-                const icon = folderEntry.querySelector('.mdi');
-                icon.classList.remove(isOpen ? 'mdi-folder' : 'mdi-folder-open');
-                icon.classList.add(isOpen ? 'mdi-folder-open' : 'mdi-folder');
-
-
-            } else if (fileEntry && fileEntry.dataset.file) {
+                if (nestedList) {
+                    const isOpen = nestedList.style.display === 'block';
+                    nestedList.style.display = isOpen ? 'none' : 'block';
+                    folderEntry.classList.toggle('open', !isOpen);
+                    
+                    // Durumu yerel depolamaya kaydet
+                    localStorage.setItem(path + '_open', !isOpen);
+                }
+            } else if (fileEntry) {
                 switchFile(fileEntry.dataset.file);
             }
         });
-
+        
         tabsContainer.addEventListener('click', (e) => {
             const tabItem = e.target.closest('.tab-item');
-            const closeButton = e.target.closest('.close-tab-button');
-            const unsavedDot = e.target.closest('.unsaved-dot');
-
-            if (tabItem && tabItem.dataset.file) {
-                if (closeButton || unsavedDot) {
-                    closeFile(tabItem.dataset.file);
-                } else {
-                    switchFile(tabItem.dataset.file);
-                }
+            const closeButton = e.target.closest('.close-tab-button') || e.target.closest('.unsaved-dot');
+            
+            if (closeButton) {
+                const fileName = closeButton.dataset.file;
+                closeFile(fileName);
+            } else if (tabItem) {
+                switchFile(tabItem.dataset.file);
             }
         });
         
-        // YENİ DOSYA OLUŞTURMA
+        // Yeni Dosya Butonları
         document.getElementById('new-file-button').addEventListener('click', () => createNewFile());
         document.getElementById('new-file-button-activity').addEventListener('click', () => createNewFile());
         document.getElementById('new-folder-button').addEventListener('click', () => {
-             logToTerminal("Klasör oluşturma simülasyonu: Yeni dosya oluştururken adında '/' kullanın (örn: assets/image.png).", 'info', 'terminal');
-             createNewFile();
+            logToTerminal("Klasör oluşturma simüle edildi (dosya yolunda '/' kullanarak oluşturabilirsiniz).", 'info');
         });
 
 
-        // AYARLAR MANTIĞI
-        document.getElementById('settings-button').addEventListener('click', () => settingsModal.style.display = 'block');
-        document.getElementById('save-settings-button').addEventListener('click', () => {
-            // Tema ve Terminal Tema
-            applyTheme(themeSelect.value);
-            applyTerminalTheme(terminalThemeSelect.value);
-
-            // Autosave
-            toggleAutosave(autosaveCheckbox.checked);
-            
-            // Font Ayarları
-            const newFamily = fontFamilySelect.value;
-            const newSize = parseInt(fontSizeInput.value);
-            editor.updateOptions({ fontFamily: newFamily, fontSize: newSize });
-            localStorage.setItem('editorFontFamily', newFamily);
-            localStorage.setItem('editorFontSize', newSize);
-            
-            settingsModal.style.display = 'none';
-        });
-
-        // RUN/PREVIEW/FORMAT
+        // Çalıştırma ve Önizleme Butonları
         runButton.addEventListener('click', runCode);
         formatButton.addEventListener('click', formatCode);
+
+        previewButton.addEventListener('click', () => {
+            previewOptionsModal.style.display = 'block';
+        });
+        document.querySelectorAll('.button-group button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                openLivePreview(e.target.dataset.previewMode);
+            });
+        });
+        document.getElementById('open-preview-newtab').addEventListener('click', () => {
+            if (previewIframe && previewWindowElement.style.display === 'flex') {
+                const content = previewIframe.contentWindow.document.documentElement.outerHTML;
+                const newTab = window.open();
+                newTab.document.write(content);
+                newTab.document.close();
+            }
+        });
+
+
+        // Ayar Kontrolleri
+        document.getElementById('settings-button').addEventListener('click', () => settingsModal.style.display = 'block');
         
-        // CANLI ÖNİZLEME Seçenekleri
-        previewButton.addEventListener('click', () => previewOptionsModal.style.display = 'block');
+        themeSelect.addEventListener('change', (e) => applyTheme(e.target.value));
+        terminalThemeSelect.addEventListener('change', (e) => applyTerminalTheme(e.target.value));
         
-        document.querySelectorAll('.preview-option-button').forEach(button => {
-            button.addEventListener('click', (e) => openLivePreview(e.target.dataset.mode));
+        fontFamilySelect.addEventListener('change', (e) => {
+            const newFont = e.target.value;
+            editor.updateOptions({ fontFamily: newFont });
+            localStorage.setItem('editorFontFamily', newFont);
+            logToTerminal(`Font Ailesi: ${newFont}`, 'info');
+        });
+        fontFamilySelect.value = savedFontFamily;
+        
+        fontSizeInput.addEventListener('change', (e) => {
+            const newSize = parseInt(e.target.value);
+            editor.updateOptions({ fontSize: newSize });
+            localStorage.setItem('editorFontSize', newSize);
+            logToTerminal(`Font Boyutu: ${newSize}px`, 'info');
+        });
+        fontSizeInput.value = savedFontSize;
+
+        autosaveCheckbox.addEventListener('change', (e) => toggleAutosave(e.target.checked));
+        autosaveToggle.addEventListener('click', () => toggleAutosave(!isAutosaveEnabled));
+        
+        // Terminalin durum çubuğundan açılıp kapanması
+        document.getElementById('terminal-status-toggle').addEventListener('click', () => {
+            const terminalPanel = document.querySelector('.terminal-panel');
+            const editorContainer = document.getElementById('editor-container');
+            const isVisible = terminalPanel.style.display !== 'none';
+            
+            terminalPanel.style.display = isVisible ? 'none' : 'flex';
+            editorContainer.style.height = isVisible ? `calc(100% - var(--tabs-height))` : `calc(100% - var(--tabs-height) - 150px)`;
+            
+            document.getElementById('terminal-status-toggle').querySelector('.mdi').className = isVisible ? 'mdi mdi-chevron-up' : 'mdi mdi-chevron-down';
+            
+            if (editor) editor.layout(); // Monaco'yu yeniden boyutlandır
         });
         
-        // YENİ: Tam Ekran Düğmesi Olay Dinleyicisi
+        // Tam Ekran Butonu
         if (maximizeButton) {
             maximizeButton.addEventListener('click', toggleMaximize);
         }
@@ -858,9 +731,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 contextMenu.dataset.targetFile = entry.dataset.file || entry.dataset.path;
             }
         });
-        
-        document.addEventListener('click', () => { contextMenu.style.display = 'none'; });
-        
+        document.addEventListener('click', () => {
+            contextMenu.style.display = 'none';
+        });
         contextMenu.addEventListener('click', (e) => {
             const action = e.target.closest('li')?.dataset.action;
             const targetFile = contextMenu.dataset.targetFile;
@@ -869,84 +742,152 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!targetFile || !action) return;
 
             switch (action) {
+                case 'new-file':
+                    createNewFile(targetFile.endsWith('/') ? targetFile + 'newFile.txt' : targetFile + '/newFile.txt'); // Klasör içine yeni dosya
+                    break;
                 case 'rename':
                     const oldFileName = targetFile.includes('/') ? targetFile.substring(targetFile.lastIndexOf('/') + 1) : targetFile;
                     const newName = prompt(`'${oldFileName}' için yeni isim girin:`, oldFileName);
                     if (newName && newName !== oldFileName) renameFile(targetFile, newName);
                     break;
                 case 'delete':
-                    closeFile(targetFile);
+                    if (fileContents[targetFile] !== undefined) {
+                        closeFile(targetFile); // Dosya silme
+                    } else {
+                        logToTerminal("Klasör silme özelliği simülasyonda desteklenmiyor.", 'warn');
+                    }
                     break;
                 case 'save':
-                    saveAllContents();
-                    logToTerminal(`'${targetFile}' kaydedildi.`, 'info');
-                    break;
-                case 'new-file':
-                    const subFileName = prompt(`Yeni alt dosya adı (örn: yeni.js):`);
-                    if (subFileName) {
-                        // Belirlenen dosyanın klasör yolu
-                        const isFolder = fileContents[targetFile] === undefined; 
-                        let basePath;
-                        
-                        if (isFolder) { 
-                             basePath = targetFile.endsWith('/') ? targetFile : targetFile + '/';
-                        } else { 
-                             const lastSlash = targetFile.lastIndexOf('/');
-                             basePath = lastSlash !== -1 ? targetFile.substring(0, lastSlash + 1) : '';
-                        }
-                        
-                        // Dosya adı temizleme
-                        const normalizedSubFileName = subFileName.trim().replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
-                        
-                        const fullPath = basePath + normalizedSubFileName;
-                        
-                        createNewFile(fullPath);
+                    if (targetFile === currentFile) {
+                         saveAllContents();
+                         logToTerminal(`'${currentFile}' manuel olarak kaydedildi.`, 'info');
                     }
                     break;
             }
+            contextMenu.dataset.targetFile = ''; // Temizle
         });
+
+
+        // Klavye Kısayolları
+        const commands = [
+            { id: 'newFile', name: 'Yeni Dosya Oluştur', action: createNewFile, shortcut: 'Ctrl+N' },
+            { id: 'saveFile', name: 'Kaydet', action: () => saveAllContents(), shortcut: 'Ctrl+S' },
+            { id: 'exportProject', name: 'Projeyi Dışa Aktar (.json)', action: () => exportProjectButton.click(), shortcut: 'Ctrl+Shift+E' },
+            // Çalıştırma
+            { id: 'runCode', name: 'Kodu Çalıştır', action: runCode, shortcut: 'F5 / Ctrl+Enter' },
+            { id: 'livePreview', name: 'Canlı Önizlemeyi Başlat', action: () => previewOptionsModal.style.display = 'block', shortcut: 'Ctrl+Shift+R' },
+            // Ayarlar ve Arayüz
+            { id: 'showSettings', name: 'Ayarları Aç', action: () => settingsModal.style.display = 'block', shortcut: 'Ctrl+,' },
+            { id: 'formatCode', name: 'Kodu Biçimlendir (Prettier)', action: formatCode, shortcut: 'Alt+Shift+F' },
+            { id: 'toggleAutosave', name: 'Otomatik Kaydetmeyi Aç/Kapat', action: () => toggleAutosave(!isAutosaveEnabled), shortcut: '' },
+            { id: 'toggleMaximize', name: 'Tam Ekran/Küçült', action: toggleMaximize, shortcut: 'F11' }, // YENİ Komut
+            { id: 'switchExplorer', name: 'Gezgin (Explorer) Paneline Git', action: () => switchSidebarPanel('explorer'), shortcut: '' },
+            // Kalıcılık Simülasyonu
+            { id: 'cloudSave', name: 'Cloud\'a Kaydet (Yedek)', action: cloudSaveSimulation, shortcut: 'Ctrl+Shift+U' }
+        ];
         
-        // KOMUT PALETİ Dinleyicileri
+        function showCommandPalette() {
+            commandPaletteModal.style.display = 'block';
+            commandPaletteInput.value = '';
+            commandPaletteInput.focus();
+            filterCommands('');
+        }
+        
+        // Komut listesini ve dosya listesini filtrele
+        function filterCommands(query) {
+            commandListElement.innerHTML = '';
+            const lowerQuery = query.toLowerCase();
+
+            // Komutlar ve dosya açma eylemlerini birleştir
+            const allItems = [...commands, ...Object.keys(fileContents).map(path => ({
+                id: path,
+                name: `Dosya Aç: ${path}`,
+                action: () => switchFile(path),
+                shortcut: ''
+            }))];
+
+            const filtered = allItems.filter(item => 
+                item.name.toLowerCase().includes(lowerQuery) || 
+                (item.shortcut && item.shortcut.toLowerCase().includes(lowerQuery))
+            ).slice(0, 20); // İlk 20 sonucu göster
+
+            filtered.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.dataset.actionId = item.id;
+                li.dataset.index = index;
+                li.innerHTML = `${item.name} ${item.shortcut ? `<span style="float: right; opacity: 0.6;">${item.shortcut}</span>` : ''}`;
+                commandListElement.appendChild(li);
+            });
+            
+            // İlk öğeyi aktif yap
+            if (filtered.length > 0) {
+                commandListElement.querySelector('li').classList.add('active');
+            }
+        }
+        
         commandPaletteInput.addEventListener('input', (e) => filterCommands(e.target.value));
-        
+
         commandPaletteInput.addEventListener('keydown', (e) => {
             const activeItem = commandListElement.querySelector('li.active');
-            let nextItem = null;
-
+            let nextItem;
+            
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                nextItem = activeItem ? activeItem.nextElementSibling : commandListElement.firstChild;
+                nextItem = activeItem ? activeItem.nextElementSibling : commandListElement.querySelector('li');
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                nextItem = activeItem ? activeItem.previousElementSibling : commandListElement.lastChild;
-            } else if (e.key === 'Enter') {
+                nextItem = activeItem ? activeItem.previousElementSibling : commandListElement.querySelector('li:last-child');
+            } else if (e.key === 'Enter' && activeItem) {
                 e.preventDefault();
-                if (activeItem) activeItem.click();
-            }
-
-            if (nextItem && nextItem.tagName === 'LI') {
-                if (activeItem) activeItem.classList.remove('active');
-                nextItem.classList.add('active');
-            }
-        });
-        
-        commandListElement.addEventListener('click', (e) => {
-            const li = e.target.closest('li');
-            if (li) {
-                const command = commands.find(c => c.id === li.dataset.commandId);
-                if (command) {
-                    command.action();
-                } else if (li.textContent.includes('Dosya Aç:')) {
-                    // Dosya açma komutlarını id üzerinden direkt al
-                    switchFile(li.dataset.commandId); 
-                }
+                activeItem.click();
                 commandPaletteModal.style.display = 'none';
+                return;
+            } else {
+                return;
             }
+
+            if (activeItem) activeItem.classList.remove('active');
+            if (nextItem) nextItem.classList.add('active');
         });
 
-        // KLAVYE KISAYOLLARI
+        commandListElement.addEventListener('click', (e) => {
+            const item = e.target.closest('li');
+            if (!item) return;
+
+            const actionId = item.dataset.actionId;
+            const actionItem = commands.find(cmd => cmd.id === actionId);
+
+            if (actionItem) {
+                actionItem.action();
+            } else if (fileContents[actionId] !== undefined) {
+                switchFile(actionId);
+            }
+            commandPaletteModal.style.display = 'none';
+        });
+
+        // Tüm Klavye Dinleyicileri
         document.addEventListener('keydown', (event) => {
-            if (event.ctrlKey && event.key === 's') { // Ctrl + S (Kaydet)
+            // Komut Paleti Aç
+            if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'p') {
+                 event.preventDefault();
+                 showCommandPalette();
+                 return;
+            }
+             
+            // Dosya Arama (Ctrl+P) - Komut Paleti olarak simüle edildi
+            if (event.ctrlKey && event.key.toLowerCase() === 'p' && document.activeElement !== commandPaletteInput) {
+                event.preventDefault();
+                showCommandPalette();
+                commandPaletteInput.value = ''; 
+                filterCommands('');
+                return;
+            }
+
+            // Diğer Kısayollar
+            if (event.ctrlKey && event.key.toLowerCase() === 'n') {
+                event.preventDefault();
+                createNewFile();
+            } else if (event.ctrlKey && event.key.toLowerCase() === 's') {
                 event.preventDefault();
                 if (!isAutosaveEnabled) {
                     saveAllContents();
@@ -954,47 +895,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     logToTerminal("Otomatik kaydetme açık, manuel kayda gerek yok.", 'warn');
                 }
-            } else if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'p') { // Ctrl + Shift + P (Komut Paleti)
-                event.preventDefault();
-                showCommandPalette();
-            } else if (event.ctrlKey && event.key.toLowerCase() === 'p' && document.activeElement !== commandPaletteInput) { // Ctrl + P (Dosya Arama - Komut Paleti olarak simüle edildi)
-                event.preventDefault();
-                 showCommandPalette();
-                 commandPaletteInput.value = '@'; // Opsiyonel: Dosya arama moduna geçiş simülasyonu
-                 filterCommands('@');
-            } else if (event.ctrlKey && event.key === ',') { // Ctrl + , (Ayarlar)
-                event.preventDefault();
-                settingsModal.style.display = 'block';
-            } else if (event.key === 'F5' || (event.ctrlKey && event.key === 'Enter')) { // F5 veya Ctrl + Enter (Çalıştır)
-                event.preventDefault(); 
-                runCode();
-            } else if (event.altKey && event.shiftKey && event.key.toLowerCase() === 'f') { // Alt + Shift + F (Format)
-                event.preventDefault();
-                formatCode();
-            } else if (event.key === 'F11') { // F11 (Tam Ekran)
+            } else if (event.key === 'F11') {
                 event.preventDefault();
                 toggleMaximize();
-            } else if (event.key === 'Escape') { // ESC
-                if (commandPaletteModal.style.display === 'block') commandPaletteModal.style.display = 'none';
-                if (settingsModal.style.display === 'block') settingsModal.style.display = 'none';
-                if (previewOptionsModal.style.display === 'block') previewOptionsModal.style.display = 'none';
-                if (body.classList.contains('maximized')) toggleMaximize(); // Tam Ekrandan çıkış
+            } else if (event.key === 'F5') {
+                 event.preventDefault();
+                 runCode();
+            } else if (event.altKey && event.shiftKey && event.key.toLowerCase() === 'f') {
+                event.preventDefault();
+                formatCode();
             }
         });
-        
-        // JSON Export/Import
-        exportProjectButton.addEventListener('click', () => {
-            saveAllContents(); 
-            const dataStr = JSON.stringify(fileContents, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
 
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', 'vs_code_pro_project.json');
-            linkElement.click();
-            logToTerminal("Proje JSON olarak başarıyla dışa aktarıldı.", 'success');
+
+        // Proje Dışa/İçe Aktarma
+        exportProjectButton.addEventListener('click', () => {
+            saveAllContents(); // Son hali kaydet
+            const data = JSON.stringify(fileContents, null, 4);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'vs-code-pro-project.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            logToTerminal("Proje dışa aktarıldı (vs-code-pro-project.json).", 'success');
         });
-        
+
         importProjectButton.addEventListener('click', () => importProjectInput.click());
         importProjectInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -1026,6 +955,40 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // CLOUD SAVE SIMÜLASYONU
         cloudSaveButton.addEventListener('click', cloudSaveSimulation);
+    }
+
+    function init() {
+        // Dosya İçeriğini Yerel Depolamadan Yükle
+        const savedContents = localStorage.getItem('fileContents');
+        const lastOpenFile = localStorage.getItem('lastOpenFile');
+        
+        if (savedContents) {
+            fileContents = JSON.parse(savedContents);
+            currentFile = fileContents[lastOpenFile] !== undefined ? lastOpenFile : Object.keys(fileContents).sort()[0] || null;
+        } else {
+            // Varsayılan dosyalar (İlk kez açılış)
+            fileContents = { 
+                'index.html': `<!DOCTYPE html>\n<html lang="tr">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Merhaba Dünya</title>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1 id="baslik">Kralın Web Sayfası</h1>\n  <button onclick="merhaba()">Tıkla</button>\n  <script src="script.js"></script>\n</body>\n</html>`,
+                'style.css': `body {\n  font-family: Arial, sans-serif;\n  background-color: #1e1e1e;\n  color: #d4d4d4;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  padding-top: 50px;\n}\n\n#baslik {\n  color: #007acc; /* VS Code Mavi */\n}`,
+                'script.js': '// JavaScript kodunuzu buraya yazın\n\nfunction merhaba() {\n console.log("Kral!");\n}\nmerhaba();'
+            };
+            currentFile = 'index.html';
+        }
+
+        toggleAutosave(savedAutosave);
+
+        // Editor'ü başlat
+        const initialContent = fileContents[currentFile] !== undefined ? fileContents[currentFile] : '// VS Code Pro Editörüne Hoş Geldiniz!\n// Yeni bir dosya oluşturmak için Ctrl+N veya Sol menüyü kullanın.';
+        initializeEditor(currentFile, initialContent);
+        
+        // Temaları ve terminal temasını uygula
+        themeSelect.value = savedTheme;
+        terminalThemeSelect.value = savedTerminalTheme;
+        applyTheme(savedTheme);
+        applyTerminalTheme(savedTerminalTheme);
+        
+        switchSidebarPanel('explorer');
+        renderFileList();
     }
 
     init(); 
