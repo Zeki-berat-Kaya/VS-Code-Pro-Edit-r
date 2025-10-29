@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>VS Code Pro Editör</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdn.materialdesignicons.com/6.5.95/css/materialdesignicons.min.css">
+</head>
+<body data-theme="dark" data-terminal-theme="dark">
+
+    <div class="title-bar">
+        <div class="activity-bar-place"></div>
+        <div class="title-text">VS Code Pro - (Başlıksız Çalışma Alanı)</div>
+        <div class="run-controls">
+            <button id="autosave-toggle" class="settings-button" title="Kaydet (Ctrl+S)">
+                <span class="mdi mdi-content-save-outline"></span>
+            </button>
+            <button id="new-file-button-activity" class="settings-button" title="Yeni Dosya (Ctrl+N)">
+                <span class="mdi mdi-file-plus-outline"></span>
+            </button>
+            <button id="run-button" class="run-button" title="Kodu Çalıştır (F5)">
+                <span class="mdi mdi-play"></span> Çalıştır
+            </button>
+            <button id="preview-button" class="run-button" title="Canlı Önizleme">
+                <span class="mdi mdi-monitor-eye"></span> Önizle
+            </button>
+            <button id="format-button" class="settings-button" title="Kodu Biçimlendir (Alt+Shift+F)">
+                <span class="mdi mdi-format-indent-increase"></span>
+            </button>
+
+            <button id="maximize-button" class="settings-button" title="Tam Ekran Yap (F11)">
+                <span class="mdi mdi-fullscreen"></span>
+            </button>
+            <button id="settings-button" class="settings-button" title="Ayarlar (Ctrl+,)">
+                <span class="mdi mdi-cog-outline"></span>
+            </button>
+        </div>
+    </div>
+
+    <div class="workspace">
+
+        <div class="activity-bar">
+            <div class="activity-item active" data-target="explorer" title="Gezgin (Dosyalar)">
+                <span class="mdi mdi-file-tree"></span>
+            </div>
+            <div class="activity-item" data-target="search" title="Arama">
+                <span class="mdi mdi-magnify"></span>
+            </div>
+            <div class="activity-item" data-target="source-control" title="Sürüm Kontrolü">
+                <span class="mdi mdi-source-branch"></span>
+            </div>
+            <div class="activity-item" data-target="extensions" title="Eklentiler">
+                <span class="mdi mdi-puzzle-outline"></span>
+            </div>
+            <div class="activity-item bottom" data-target="settings" title="Ayarlar">
+                <span class="mdi mdi-cog-outline"></span>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <span id="sidebar-header-title">GEZGİN</span>
+                <div class="sidebar-controls">
+                    <button id="new-file-button" title="Yeni Dosya"><span class="mdi mdi-file-plus-outline"></span></button>
+                    <button id="new-folder-button" title="Yeni Klasör (Simülasyon)"><span class="mdi mdi-folder-plus-outline"></span></button>
+                    <button title="Yenile"><span class="mdi mdi-refresh"></span></button>
+                </div>
+            </div>
+
+            <div id="explorer-panel" class="sidebar-panel">
+                <div class="file-list-container">
+                    <div id="file-list" class="file-list"></div>
+                </div>
+            </div>
+
+            <div id="search-panel" class="sidebar-panel">
+                <div class="search-box">
+                    <input type="text" placeholder="Arama yap..." class="search-input">
+                    <button title="Ara"><span class="mdi mdi-magnify"></span></button>
+                </div>
+                <p style="margin: 10px; color: var(--inactive-text);">Arama simülasyonu.</p>
+            </div>
+
+            <div id="source-control-panel" class="sidebar-panel">
+                <p style="margin: 10px; color: var(--inactive-text);">Sürüm kontrolü simülasyonu.</p>
+            </div>
+            
+            <div id="extensions-panel" class="sidebar-panel">
+                <div class="extension-list">
+                    <div class="extension-item">
+                        <span>Prettier (Code Formatter)</span>
+                        <button class="install-button" data-extension="prettier">Yükle</button>
+                    </div>
+                    <div class="extension-item">
+                        <span>Live Server (Preview)</span>
+                        <button class="install-button" data-extension="live-server">Yükle</button>
+                    </div>
+                    <div class="extension-item">
+                        <span>Python IntelliSense</span>
+                        <button class="install-button" data-extension="python-intellisense">Yükle</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="editor-and-terminal">
+            
+            <div id="file-tabs-container" class="file-tabs-container">
+                </div>
+
+            <div id="editor-container" class="editor-container">
+                </div>
+
+            <div class="terminal-panel">
+                <div class="panel-tabs">
+                    <div class="panel-tab active" data-tab="terminal">Terminal</div>
+                    <div class="panel-tab" data-tab="console">Konsol</div>
+                    <div class="panel-tab" data-tab="output">Çıktı</div>
+                    <div class="panel-controls">
+                        <button id="clear-terminal" title="Temizle"><span class="mdi mdi-trash-can-outline"></span></button>
+                    </div>
+                </div>
+                <div class="terminal-content-container">
+                    <pre id="terminal-content" class="terminal-content" data-tab-content="terminal"></pre>
+                    <pre id="console-content" class="terminal-content" data-tab-content="console" style="display: none;"></pre>
+                    <pre id="output-content" class="terminal-content" data-tab-content="output" style="display: none;"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        <div class="status-group left-group">
+            <span class="status-item"><span class="mdi mdi-source-branch"></span> main</span>
+            <span class="status-item"><span class="mdi mdi-sync"></span> 0</span>
+            <span class="status-item"><span class="mdi mdi-alert-circle-outline"></span> 0</span>
+            <span class="status-item"><span class="mdi mdi-close-circle-outline"></span> 0</span>
+        </div>
+        <div class="status-group right-group">
+            <span class="status-item" id="status-line-col">Satır 1, Sütun 1</span>
+            <span class="status-item"><span class="mdi mdi-file-code-outline"></span> HTML</span>
+            <span class="status-item"><span class="mdi mdi-xml"></span> UTF-8</span>
+            <span class="status-item" id="terminal-status-toggle"><span class="mdi mdi-chevron-up"></span> Terminal</span>
+        </div>
+    </div>
+
+
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Editör Ayarları</h2>
+            <div class="setting-group">
+                <label for="theme-select">Tema:</label>
+                <select id="theme-select">
+                    <option value="vs-dark">VS Dark</option>
+                    <option value="vs-light">VS Light</option>
+                    <option value="hc-black">High Contrast</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label for="terminal-theme-select">Terminal Teması:</label>
+                <select id="terminal-theme-select">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label for="font-family-select">Yazı Tipi (Font Ailesi):</label>
+                <select id="font-family-select">
+                    <option value="monospace">Monospace (Varsayılan)</option>
+                    <option value="Consolas">Consolas</option>
+                    <option value="Fira Code">Fira Code (Simülasyon)</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label for="font-size-input">Yazı Tipi Boyutu (px):</label>
+                <input type="number" id="font-size-input" min="8" max="30" value="14">
+            </div>
+            <div class="setting-group">
+                <input type="checkbox" id="autosave-checkbox">
+                <label for="autosave-checkbox">Otomatik Kaydetmeyi Etkinleştir</label>
+            </div>
+            <div class="setting-group">
+                <button id="export-project-button" class="run-button"><span class="mdi mdi-download"></span> Dışa Aktar</button>
+                <button id="import-project-button" class="run-button"><span class="mdi mdi-upload"></span> İçe Aktar</button>
+                <input type="file" id="import-project-input" accept=".json" style="display: none;">
+                <button id="cloud-save-button" class="run-button"><span class="mdi mdi-cloud-upload-outline"></span> Cloud'a Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="preview-options-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Canlı Önizleme Modu</h2>
+            <p>Canlı önizleme, geçerli dosyaları (index.html, style.css, script.js) birleştirerek çalıştırır.</p>
+            <div class="setting-group button-group">
+                <button class="run-button" data-preview-mode="full_stack">
+                    <span class="mdi mdi-cube-send"></span> Full Stack (HTML, CSS, JS)
+                </button>
+                <button class="run-button" data-preview-mode="html_css">
+                    <span class="mdi mdi-language-html5"></span> HTML ve CSS
+                </button>
+                <button class="run-button" data-preview-mode="html_only">
+                    <span class="mdi mdi-language-html5"></span> Sadece HTML
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="preview-window" class="preview-window">
+        <div class="preview-header">
+            <h3>Canlı Önizleme</h3>
+            <div class="preview-toolbar">
+                <span id="preview-mode-indicator">Mod: </span>
+                <button id="open-preview-newtab" class="run-button" title="Yeni Sekmede Aç (Opsiyonel)">Yeni Sekmede Aç</button>
+                <button id="close-preview-button" class="settings-button" title="Önizlemeyi Kapat">
+                    <span class="mdi mdi-close"></span>
+                </button>
+            </div>
+            <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <div id="command-palette-modal" class="modal command-palette-modal">
+        <div class="modal-content command-palette-content">
+            <input type="text" id="command-palette-input" placeholder="Komut veya Dosya Adı (Ctrl+Shift+P)..." autocomplete="off">
+            <ul id="command-list" class="command-list"></ul>
+        </div>
+    </div>
+
+    <ul id="context-menu" class="context-menu">
+        <li data-action="new-file"><span class="mdi mdi-file-plus-outline"></span> Yeni Dosya</li>
+        <li class="separator"></li>
+        <li data-action="rename"><span class="mdi mdi-form-textbox"></span> Yeniden Adlandır</li>
+        <li data-action="delete"><span class="mdi mdi-trash-can-outline"></span> Sil</li>
+        <li class="separator"></li>
+        <li data-action="save"><span class="mdi mdi-content-save"></span> Kaydet</li>
+    </ul>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.20.0/min/vs/loader.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
